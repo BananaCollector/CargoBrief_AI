@@ -85,9 +85,9 @@ def evaluate_shipment(
             False, destination, None, None, None, (), (), "Dodaj co najmniej jedno zlecenie."
         )
 
-    normalized_destination = normalize_location(destination)
+    normalized_destination = normalize_location(orders[0].delivery_location or "")
     if any(
-        normalize_location(format_order_address(order, "delivery")) != normalized_destination
+        normalize_location(order.delivery_location or "") != normalized_destination
         for order in orders[1:]
     ):
         return ShipmentEvaluation(
@@ -179,10 +179,18 @@ def evaluate_shipment(
     pickup_locations = {
         normalize_location(format_order_address(order, "pickup")) for order in orders
     }
+    delivery_addresses = {
+        normalize_location(format_order_address(order, "delivery")) for order in orders
+    }
     warnings = [CAPACITY_NOTE]
     if len(pickup_locations) > 1:
         warnings.append(
             "Wysyłka ma wiele miejsc odbioru; kolejność przystanków nie jest optymalizowana."
+        )
+    if len(delivery_addresses) > 1:
+        warnings.append(
+            "Wysyłka obejmuje różne adresy dostawy w tym samym mieście; "
+            "kolejność przystanków nie jest optymalizowana."
         )
     if date_conflicts:
         warnings.append(

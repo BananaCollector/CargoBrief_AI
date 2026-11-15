@@ -77,7 +77,7 @@ def test_shipment_groups_approved_orders_and_reports_capacity(client) -> None:
     assert client.get("/api/v1/shipments/available-orders").json() == []
 
 
-def test_shipment_requires_matching_full_delivery_address(client) -> None:
+def test_shipment_requires_matching_delivery_city(client) -> None:
     first_id, _ = create_approved_order(
         client,
         delivery_street="Długa",
@@ -86,6 +86,7 @@ def test_shipment_requires_matching_full_delivery_address(client) -> None:
     )
     second_id, _ = create_approved_order(
         client,
+        delivery_location="Kraków",
         delivery_street="Floriańska",
         delivery_building_number="12",
         delivery_postal_code="31-021",
@@ -123,6 +124,34 @@ def test_shipment_displays_full_delivery_address(client) -> None:
 
     assert response.status_code == 201
     assert response.json()["destination"] == "Długa 10, 80-831 Gdańsk"
+
+
+def test_shipment_allows_different_delivery_addresses_in_same_city(client) -> None:
+    first_id, _ = create_approved_order(
+        client,
+        delivery_street="Długa",
+        delivery_building_number="10",
+        delivery_postal_code="80-831",
+    )
+    second_id, _ = create_approved_order(
+        client,
+        delivery_street="Grunwaldzka",
+        delivery_building_number="25",
+        delivery_postal_code="80-241",
+    )
+
+    response = client.post(
+        "/api/v1/shipments",
+        json={
+            "scheduled_date": "2026-11-18",
+            "vehicle_id": 1,
+            "order_ids": [first_id, second_id],
+        },
+    )
+
+    assert response.status_code == 201
+    assert [order["id"] for order in response.json()["orders"]] == [first_id, second_id]
+    assert any("różne adresy dostawy w tym samym mieście" in warning for warning in response.json()["warnings"])
 
 
 def test_shipment_requires_approved_orders_and_one_destination(client) -> None:
@@ -247,6 +276,8 @@ def test_demo_suggestions_are_checked_by_backend(client, monkeypatch) -> None:
         client,
         pickup_location="Poznań",
         preferred_date="2026-11-20",
+        delivery_street="Grunwaldzka",
+        delivery_building_number="25",
     )
     monkeypatch.setattr(ai_analyzer.settings, "gemini_api_key", None)
 

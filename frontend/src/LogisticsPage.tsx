@@ -255,7 +255,8 @@ function LogisticsPage() {
         </div>
         <h1 className="text-3xl font-bold tracking-tight text-slate-900">Wysyłki i łączenie zleceń</h1>
         <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-600">
-          Wysyłka może zawierać zatwierdzone zlecenia do tego samego celu. Backend sprawdza
+          Wysyłka może zawierać zatwierdzone zlecenia z dostawą do tego samego miasta, nawet
+          jeśli adresy uliczne są różne. Backend sprawdza
           wymiary, łączną wagę i przybliżoną objętość ładunku przed przypisaniem pojazdu.
           Kolejność wielu odbiorów nie jest optymalizowana.
         </p>

@@ -96,3 +96,46 @@ def test_dev_clear_prevents_orphaning_referenced_rows(client, monkeypatch) -> No
     )
     assert response.status_code == 409
     assert response.json()["error"]["code"] == "table_has_references"
+
+
+def test_logistics_remains_available_after_clearing_shipment_links(client, monkeypatch) -> None:
+    monkeypatch.setattr(settings, "dev_tools_enabled", True)
+    order_payload = {
+        "cargo_description": "Paczka",
+        "length_cm": 100,
+        "width_cm": 90,
+        "height_cm": 80,
+        "weight_kg": 100,
+        "quantity": 1,
+        "pickup_location": "Warszawa",
+        "delivery_location": "Gdańsk",
+        "customer_email": "customer@example.com",
+    }
+    created_order = client.post("/api/v1/orders", json=order_payload).json()
+    order_payload["status"] = "approved"
+    client.put(f"/api/v1/orders/{created_order['id']}", json=order_payload)
+    created_shipment = client.post(
+        "/api/v1/shipments",
+        json={
+            "scheduled_date": "2026-11-18",
+            "vehicle_id": 1,
+            "order_ids": [created_order["id"]],
+        },
+    )
+    assert created_shipment.status_code == 201
+
+    clear_response = client.post(
+        "/api/v1/dev/tables/shipment_orders/clear",
+        json={"confirm_table_name": "shipment_orders"},
+    )
+    assert clear_response.status_code == 200
+
+    shipments_response = client.get("/api/v1/shipments")
+    assert shipments_response.status_code == 200
+    shipment = shipments_response.json()[0]
+    assert shipment["id"] == created_shipment.json()["id"]
+    assert shipment["orders"] == []
+    assert shipment["total_weight_kg"] == 0
+    assert shipment["total_volume_cm3"] == 0
+    assert "nie ma przypisanych zleceń" in shipment["warnings"][0]
+    assert client.get("/api/v1/shipments/available-orders").json()[0]["id"] == created_order["id"]

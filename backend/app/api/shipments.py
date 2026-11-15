@@ -100,21 +100,6 @@ def _build_shipment_read(
             status_code=status.HTTP_409_CONFLICT,
             detail={"code": "shipment_vehicle_missing", "message": "Pojazd wysyłki już nie istnieje."},
         )
-    evaluation = evaluate_shipment(
-        orders,
-        [vehicle],
-        shipment.scheduled_date,
-        vehicle_id=vehicle.id,
-        confirm_date_override=True,
-    )
-    if not evaluation.eligible or evaluation.total_weight_kg is None or evaluation.total_volume_cm3 is None:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail={
-                "code": "shipment_invalid",
-                "message": "Dane przypisanych zleceń nie spełniają już ograniczeń wysyłki.",
-            },
-        )
     notification_statuses = list(
         db.scalars(
             select(ShipmentNotification.status).where(
@@ -134,6 +119,38 @@ def _build_shipment_read(
         notification_status = "sent"
     else:
         notification_status = "not_configured"
+
+    if not orders:
+        return ShipmentRead(
+            id=shipment.id,
+            scheduled_date=shipment.scheduled_date,
+            destination=shipment.destination,
+            vehicle=VehicleRead.model_validate(vehicle),
+            orders=[],
+            total_weight_kg=0,
+            total_volume_cm3=0,
+            warnings=[
+                "Wysyłka nie ma przypisanych zleceń. Usuń pusty rekord, aby uporządkować plan transportu."
+            ],
+            notification_status=notification_status,
+            created_at=shipment.created_at,
+        )
+
+    evaluation = evaluate_shipment(
+        orders,
+        [vehicle],
+        shipment.scheduled_date,
+        vehicle_id=vehicle.id,
+        confirm_date_override=True,
+    )
+    if not evaluation.eligible or evaluation.total_weight_kg is None or evaluation.total_volume_cm3 is None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={
+                "code": "shipment_invalid",
+                "message": "Dane przypisanych zleceń nie spełniają już ograniczeń wysyłki.",
+            },
+        )
 
     return ShipmentRead(
         id=shipment.id,

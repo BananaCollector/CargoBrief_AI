@@ -7,7 +7,7 @@ from app.database import get_db
 from app.main import app
 from app.models import IncomingEmail
 from app.schemas import AIAnalyzeResponse, AIAnalyzedOrder
-from app.services import ai_analyzer, email_worker
+from app.services import email_worker
 
 
 def insert_incoming_email(
@@ -141,7 +141,7 @@ def test_incoming_email_analysis_requires_gemini_and_never_uses_demo(client, mon
 
 
 def test_background_analysis_creates_incomplete_order_draft(client, monkeypatch) -> None:
-    email_id = insert_incoming_email(
+    insert_incoming_email(
         status="pending_analysis",
         body="Chciałbym przewieźć mebel.",
     )

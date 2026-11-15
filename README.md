@@ -65,7 +65,7 @@ Uruchom API:
 uvicorn app.main:app --reload
 ```
 
-Backend działa domyślnie pod adresem `http://localhost:8000`; dokumentacja API FastAPI jest dostępna pod `http://localhost:8000/docs`.
+Backend działa domyślnie pod adresem `http://127.0.0.1:8000`. Interaktywna dokumentacja API FastAPI (Swagger UI) jest dostępna pod `http://127.0.0.1:8000/docs`, a schemat OpenAPI pod `http://127.0.0.1:8000/openapi.json`.
 
 ### 2. Frontend
 
@@ -84,13 +84,13 @@ Frontend działa domyślnie pod adresem `http://localhost:5173`. Zmienna `VITE_A
 
 Ustawienia backendu znajdują się w `backend/.env`. Wartości przykładowe można zmienić zgodnie z potrzebami:
 
-- `GEMINI_API_KEY` — klucz API włączający analizę AI i propozycje grupowania wysyłek.
+- `GEMINI_API_KEY` — klucz API włączający analizę przez Gemini i propozycje grupowania wysyłek oparte na Gemini. Bez klucza interaktywna analiza wiadomości i propozycje grupowania działają w trybie demonstracyjnym. Automatyczna analiza wiadomości odebranych przez Gmail wymaga klucza; bez niego wiadomości pozostają oczekujące na analizę.
 - `GEMINI_MODEL` — model Gemini; domyślna wartość znajduje się w `backend/.env.example`.
 - `GMAIL_ADDRESS` i `GMAIL_APP_PASSWORD` — adres skrzynki Gmail i jej hasło aplikacji.
 - `EMAIL_POLL_INTERVAL_SECONDS` — odstęp między automatycznymi próbami sprawdzenia poczty.
 - `DEV_TOOLS_ENABLED` — domyślnie `false`; włącza możliwość czyszczenia danych w widoku developerskim. Używaj wyłącznie lokalnie.
 
-Nie umieszczaj kluczy API ani haseł w repozytorium. Do Gmaila należy użyć hasła aplikacji, a nie hasła do konta. Przy braku konfiguracji Gemini podstawowy CRUD pozostaje dostępny, ale funkcje zależne od AI nie będą działały. Integracja Gmail uruchamia się tylko po skonfigurowaniu adresu i hasła.
+Nie umieszczaj kluczy API ani haseł w repozytorium. Do Gmaila należy użyć hasła aplikacji, a nie hasła do konta. Podstawowe operacje CRUD i deterministyczne dopasowanie pojazdu działają bez konfiguracji Gemini. Integracja Gmail uruchamia się tylko po skonfigurowaniu adresu i hasła.
 
 ## Testy i build
 

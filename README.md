@@ -111,4 +111,4 @@ npm run build
 
 ## Wsparcie narzędzi AI
 
-Podczas pracy nad projektem korzystałem z GitHub Copilot jako wsparcia przy implementacji, analizie kodu i przygotowywaniu testów. Wygenerowane sugestie były weryfikowane i dostosowywane do wymagań projektu. Plik `CLAUDE.md` nie był używany i nie jest częścią repozytorium.
+Podczas pracy nad projektem korzystałem z GitHub Copilot jako wsparcia przy implementacji, analizie kodu i przygotowywaniu testów. Wygenerowane sugestie były weryfikowane i dostosowywane do wymagań projektu.

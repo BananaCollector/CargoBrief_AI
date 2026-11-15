@@ -8,6 +8,14 @@ def order_payload() -> dict[str, object]:
         "quantity": 1,
         "pickup_location": "Warszawa",
         "delivery_location": "Kraków",
+        "pickup_street": "Długa",
+        "pickup_building_number": "10",
+        "pickup_apartment": "3",
+        "pickup_postal_code": "80-831",
+        "delivery_street": "Floriańska",
+        "delivery_building_number": "12",
+        "delivery_postal_code": "31-021",
+        "customer_phone": "+48 600 700 800",
         "preferred_date": "2026-11-15",
         "preferred_time": "12:30:00",
         "pickup_floor": 2,
@@ -39,6 +47,12 @@ def test_order_can_be_created_listed_read_updated_and_deleted(client) -> None:
     read_response = client.get(f"/api/v1/orders/{order_id}")
     assert read_response.status_code == 200
     assert read_response.json()["pickup_location"] == "Warszawa"
+    assert read_response.json()["pickup_street"] == "Długa"
+    assert read_response.json()["pickup_building_number"] == "10"
+    assert read_response.json()["pickup_apartment"] == "3"
+    assert read_response.json()["pickup_postal_code"] == "80-831"
+    assert read_response.json()["delivery_postal_code"] == "31-021"
+    assert read_response.json()["customer_phone"] == "+48 600 700 800"
 
     update_payload = order_payload()
     update_payload["status"] = "in_review"
@@ -50,6 +64,15 @@ def test_order_can_be_created_listed_read_updated_and_deleted(client) -> None:
     assert update_response.status_code == 200
     assert update_response.json()["status"] == "in_review"
     assert update_response.json()["notes"] == "Potwierdzić windę."
+
+    approve_payload = order_payload()
+    approve_payload["status"] = "approved"
+    approve_response = client.put(
+        f"/api/v1/orders/{order_id}",
+        json=approve_payload,
+    )
+    assert approve_response.status_code == 200
+    assert approve_response.json()["status"] == "approved"
 
     delete_response = client.delete(f"/api/v1/orders/{order_id}")
     assert delete_response.status_code == 204
@@ -93,3 +116,56 @@ def test_order_rejects_unknown_fields(client) -> None:
 
     assert response.status_code == 422
     assert response.json()["error"]["code"] == "validation_error"
+
+
+def test_order_rejects_invalid_customer_email(client) -> None:
+    payload = order_payload()
+    payload["customer_email"] = "not-an-email"
+
+    response = client.post("/api/v1/orders", json=payload)
+
+    assert response.status_code == 422
+    assert response.json()["error"]["code"] == "validation_error"
+
+
+def test_order_rejects_invalid_customer_phone(client) -> None:
+    payload = order_payload()
+    payload["customer_phone"] = "call-me"
+
+    response = client.post("/api/v1/orders", json=payload)
+
+    assert response.status_code == 422
+    assert response.json()["error"]["code"] == "validation_error"
+
+
+def test_incomplete_email_draft_can_be_saved_but_not_approved(client) -> None:
+    response = client.post(
+        "/api/v1/orders",
+        json={
+            "cargo_description": "Kanapa",
+            "pickup_location": "Gdańsk",
+            "delivery_location": "Gdynia",
+        },
+    )
+    assert response.status_code == 201
+    order_id = response.json()["id"]
+
+    incomplete_update = {
+        **order_payload(),
+        "cargo_description": None,
+        "pickup_location": None,
+        "delivery_location": None,
+        "status": "approved",
+    }
+    response = client.put(f"/api/v1/orders/{order_id}", json=incomplete_update)
+
+    assert response.status_code == 422
+    assert response.json()["error"]["code"] == "order_incomplete"
+
+    incomplete_update["status"] = "new"
+    response = client.put(f"/api/v1/orders/{order_id}", json=incomplete_update)
+
+    assert response.status_code == 200
+    assert response.json()["cargo_description"] is None
+    assert response.json()["pickup_location"] is None
+    assert response.json()["delivery_location"] is None

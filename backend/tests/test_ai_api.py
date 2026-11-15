@@ -21,8 +21,12 @@ def test_analyze_endpoint_returns_explicit_demo_result(client, monkeypatch) -> N
     assert payload["mode"] == "demo"
     assert payload["order"]["cargo_description"] == "Kanapa"
     assert payload["order"]["length_cm"] == 220
-    assert payload["order"]["pickup_location"] == "Warszawa"
+    assert payload["order"]["pickup_location"] == "Gdańsk"
     assert payload["order"]["delivery_location"] == "Kraków"
+    assert payload["order"]["pickup_street"] == "Długa"
+    assert payload["order"]["pickup_building_number"] == "10"
+    assert payload["order"]["delivery_postal_code"] == "31-021"
+    assert payload["order"]["customer_phone"] == "+48 600 700 800"
     assert payload["order"]["preferred_date"] is None
     assert "preferred_date" in payload["missing_fields"]
     assert payload["ambiguities"] == []
@@ -64,6 +68,14 @@ def test_analyze_endpoint_uses_gemini_and_validates_the_result(client, monkeypat
             "quantity": 1,
             "pickup_location": "Gdańsk",
             "delivery_location": "Gdynia",
+            "pickup_street": "Długa",
+            "pickup_building_number": "10",
+            "pickup_apartment": "3",
+            "pickup_postal_code": "80-831",
+            "delivery_street": "Świętojańska",
+            "delivery_building_number": "4",
+            "delivery_postal_code": "81-368",
+            "customer_phone": "+48 600 700 800",
         },
         "ambiguities": ["Nie podano wymiarów ładunku."],
     }
@@ -95,6 +107,9 @@ def test_analyze_endpoint_uses_gemini_and_validates_the_result(client, monkeypat
     assert result["mode"] == "ai"
     assert result["order"]["original_message"] == message
     assert result["order"]["pickup_location"] == "Gdańsk"
+    assert result["order"]["pickup_street"] == "Długa"
+    assert result["order"]["delivery_postal_code"] == "81-368"
+    assert result["order"]["customer_phone"] == "+48 600 700 800"
     assert "length_cm" in result["missing_fields"]
     assert result["ambiguities"] == raw_result["ambiguities"]
     assert recorded["model"] == "test-model"

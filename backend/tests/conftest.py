@@ -4,13 +4,17 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
+from app.config import settings
 from app.database import Base, get_db
 from app.main import app
 from app.models import Vehicle
 
 
 @pytest.fixture
-def client():
+def client(monkeypatch):
+    monkeypatch.setattr(settings, "gmail_address", None)
+    monkeypatch.setattr(settings, "gmail_app_password", None)
+    monkeypatch.setattr(settings, "gemini_api_key", None)
     engine = create_engine(
         "sqlite://",
         connect_args={"check_same_thread": False},

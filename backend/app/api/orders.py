@@ -5,7 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import TransportOrder, Vehicle
+from app.models import ShipmentOrder, TransportOrder, Vehicle
 from app.schemas import (
     TransportOrderCreate,
     TransportOrderDetail,
@@ -39,6 +39,20 @@ def build_order_detail(
 
 def get_vehicles(db: Session) -> list[Vehicle]:
     return list(db.scalars(select(Vehicle).order_by(Vehicle.id)).all())
+
+
+def ensure_order_is_not_assigned(db: Session, order_id: int) -> None:
+    shipment_id = db.scalar(
+        select(ShipmentOrder.shipment_id).where(ShipmentOrder.order_id == order_id)
+    )
+    if shipment_id is not None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={
+                "code": "order_assigned_to_shipment",
+                "message": "Najpierw usuń zlecenie z wysyłki, aby je zmienić lub usunąć.",
+            },
+        )
 
 
 @router.post("", response_model=TransportOrderDetail, status_code=status.HTTP_201_CREATED)
@@ -90,8 +104,26 @@ def update_order(
             status_code=status.HTTP_404_NOT_FOUND,
             detail={"code": "order_not_found", "message": "Nie znaleziono zlecenia."},
         )
+    ensure_order_is_not_assigned(db, order_id)
 
-    for field, value in payload.model_dump(exclude={"status"}).items():
+    update_data = payload.model_dump(exclude={"status"}, exclude_unset=True)
+    final_required_values = (
+        update_data.get("cargo_description", order.cargo_description),
+        update_data.get("pickup_location", order.pickup_location),
+        update_data.get("delivery_location", order.delivery_location),
+    )
+    if payload.status == "approved" and any(
+        not value or not value.strip() for value in final_required_values
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={
+                "code": "order_incomplete",
+                "message": "Przed zatwierdzeniem uzupełnij opis ładunku oraz miejscowości odbioru i dostawy.",
+            },
+        )
+
+    for field, value in update_data.items():
         setattr(order, field, value)
     if payload.status is not None:
         order.status = payload.status
@@ -110,6 +142,7 @@ def delete_order(order_id: int, db: Session = Depends(get_db)) -> Response:
             status_code=status.HTTP_404_NOT_FOUND,
             detail={"code": "order_not_found", "message": "Nie znaleziono zlecenia."},
         )
+    ensure_order_is_not_assigned(db, order_id)
 
     db.delete(order)
     db.commit()

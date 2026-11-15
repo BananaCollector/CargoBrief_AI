@@ -2,7 +2,7 @@
 
 CargoBrief AI to aplikacja full-stack wspierająca pracowników w zamienianiu wiadomości klientów w uporządkowane zlecenia transportowe. System może analizować treść wiadomości i zaproponować dopasowanie pojazdu, ale to pracownik sprawdza i zatwierdza każde zlecenie.
 
-<a href="https://www.youtube.com/watch?v=KV_xRLWcGuA" target="_blank">Video preview</a>
+<a href="https://www.youtube.com/watch?v=KV_xRLWcGuA" target="_blank">Film z demonstracją</a> 
 
 ## Funkcje
 
